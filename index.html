@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>MotoRutas — Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0e1120;--panel:#151929;--card:#1c2136;--border:rgba(255,255,255,.07);
+  --acc:#5b8df6;--green:#29c47a;--amber:#f0a52a;--red:#e05252;
+  --t1:#e8ecff;--t2:#7a85a8;--t3:#3d4460;--f:system-ui,-apple-system,sans-serif;
+}
+html,body{height:100%;background:var(--bg);color:var(--t1);font-family:var(--f)}
+body{display:flex;flex-direction:column}
+
+nav{background:var(--panel);border-bottom:1px solid var(--border);
+  padding:0 20px;display:flex;align-items:center;gap:0;flex-shrink:0;height:52px}
+.brand{font-size:15px;font-weight:700;margin-right:24px;white-space:nowrap}
+.brand span{color:var(--acc)}
+.nav-tabs{display:flex;height:100%;gap:2px}
+.ntab{padding:0 16px;height:100%;display:flex;align-items:center;gap:7px;
+  font-size:13px;font-weight:600;cursor:pointer;border:none;background:transparent;
+  color:var(--t2);font-family:var(--f);border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
+.ntab:hover{color:var(--t1);background:rgba(255,255,255,.04)}
+.ntab.on{color:var(--acc);border-bottom-color:var(--acc)}
+.nav-right{margin-left:auto;display:flex;gap:10px;align-items:center}
+.dot-wrap{display:flex;align-items:center;gap:5px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--t3);flex-shrink:0}
+.dot.on{background:var(--green);box-shadow:0 0 6px var(--green)}
+.dot-lbl{font-size:11px;color:var(--t2)}
+
+.page{display:none;flex:1;overflow:hidden}
+.page.on{display:flex;flex-direction:column}
+.iframe-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden}
+iframe{flex:1;border:none;width:100%;height:100%}
+
+/* DASHBOARD */
+.dash{flex:1;padding:20px;overflow-y:auto;display:grid;
+  grid-template-columns:1fr 1fr;gap:16px;align-content:start}
+.dcard{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px}
+.dcard h3{font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;
+  letter-spacing:.5px;margin-bottom:12px}
+
+/* Cadete row */
+.crow{display:flex;align-items:center;gap:10px;padding:10px 12px;
+  background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:6px}
+.crow:last-child{margin-bottom:0}
+.cavatar{font-size:20px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;
+  background:var(--bg);border-radius:50%;border:1px solid var(--border);flex-shrink:0}
+.cinfo{flex:1;min-width:0}
+.cname{font-size:13px;font-weight:700}
+.cmeta{font-size:11px;color:var(--t2);margin-top:2px}
+.cprog{background:var(--bg);border-radius:99px;height:5px;margin-top:5px;overflow:hidden}
+.cprog-fill{height:100%;border-radius:99px;background:var(--green);transition:width .4s}
+.cbadge{font-size:10px;padding:3px 8px;border-radius:99px;font-weight:700;flex-shrink:0;white-space:nowrap}
+.cb-on{background:rgba(41,196,122,.2);color:#4de09a}
+.cb-off{background:rgba(255,255,255,.07);color:var(--t2)}
+.cb-ruta{background:rgba(91,141,246,.2);color:#93baff}
+.cb-done{background:rgba(41,196,122,.3);color:#29c47a}
+
+/* Acción limpiar */
+.cbtn-clear{background:none;border:none;cursor:pointer;color:var(--t3);font-size:12px;
+  padding:3px 6px;border-radius:5px;transition:all .15s;flex-shrink:0}
+.cbtn-clear:hover{background:rgba(224,82,82,.15);color:var(--red)}
+
+/* Stats globales */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sbox{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.sbox .v{font-size:26px;font-weight:700;font-family:monospace}
+.sbox .l{font-size:10px;color:var(--t2);text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+
+/* Acciones rápidas */
+.qbtn{width:100%;padding:10px;border-radius:8px;font-size:13px;font-weight:700;
+  cursor:pointer;font-family:var(--f);transition:all .15s;border:1px solid var(--border);
+  margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.qbtn:last-child{margin-bottom:0}
+.qbtn-acc{background:var(--acc);color:#fff;border-color:var(--acc)}.qbtn-acc:hover{background:#4a7de8}
+.qbtn-ghost{background:transparent;color:var(--t2)}.qbtn-ghost:hover{background:var(--card);color:var(--t1)}
+
+/* Modal */
+.mbg{position:fixed;inset:0;background:rgba(4,5,14,.88);display:flex;
+  align-items:center;justify-content:center;z-index:9000}
+.mbox{background:var(--panel);border:1px solid rgba(255,255,255,.12);border-radius:12px;
+  padding:22px;width:300px;max-width:90vw}
+.mbox h3{font-size:14px;font-weight:700;margin-bottom:10px}
+.mbox p{font-size:12px;color:var(--t2);margin-bottom:16px;line-height:1.5}
+.macts{display:flex;gap:8px}
+.mbtn{padding:8px 16px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;
+  border:1px solid var(--border);font-family:var(--f)}
+.mbtn-cancel{background:transparent;color:var(--t2)}.mbtn-cancel:hover{background:var(--card)}
+.mbtn-danger{background:var(--red);color:#fff;border-color:var(--red)}.mbtn-danger:hover{background:#c43d3d}
+
+@media(max-width:700px){.dash{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="brand">🏍 <span>MotoRutas</span></div>
+  <div class="nav-tabs">
+    <button class="ntab on" onclick="goTo('dash',this)">📊 Dashboard</button>
+    <button class="ntab" onclick="goTo('opt',this)">🗺 Optimizador</button>
+    <button class="ntab" onclick="goTo('cadete',this)">🏍 Cadete</button>
+    <button class="ntab" onclick="goTo('tracking',this)">📍 Tracking</button>
+  </div>
+  <div class="nav-right">
+    <div class="dot-wrap"><div class="dot" id="dot-1"></div><span class="dot-lbl">Franco</span></div>
+    <div class="dot-wrap"><div class="dot" id="dot-2"></div><span class="dot-lbl">Benja</span></div>
+    <div class="dot-wrap"><div class="dot" id="dot-3"></div><span class="dot-lbl">Burga</span></div>
+  </div>
+</nav>
+
+<div class="page on" id="page-dash">
+  <div class="dash">
+
+    <!-- Cadetes -->
+    <div class="dcard">
+      <h3>Estado de cadetes</h3>
+
+      <div class="crow" id="crow-1">
+        <div class="cavatar">🧢</div>
+        <div class="cinfo">
+          <div class="cname">Franco</div>
+          <div class="cmeta" id="meta-1">Sin ruta asignada</div>
+          <div class="cprog"><div class="cprog-fill" id="prog-1" style="width:0%"></div></div>
+        </div>
+        <span class="cbadge cb-off" id="badge-1">Sin ruta</span>
+        <button class="cbtn-clear" id="clear-1" onclick="pedirLimpiar('cadete1','Franco')" title="Limpiar ruta" style="display:none">🗑</button>
+      </div>
+
+      <div class="crow" id="crow-2">
+        <div class="cavatar">⛑️</div>
+        <div class="cinfo">
+          <div class="cname">Benja</div>
+          <div class="cmeta" id="meta-2">Sin ruta asignada</div>
+          <div class="cprog"><div class="cprog-fill" id="prog-2" style="width:0%"></div></div>
+        </div>
+        <span class="cbadge cb-off" id="badge-2">Sin ruta</span>
+        <button class="cbtn-clear" id="clear-2" onclick="pedirLimpiar('cadete2','Benja')" title="Limpiar ruta" style="display:none">🗑</button>
+      </div>
+
+      <div class="crow" id="crow-3">
+        <div class="cavatar">🎯</div>
+        <div class="cinfo">
+          <div class="cname">Burga</div>
+          <div class="cmeta" id="meta-3">Sin ruta asignada</div>
+          <div class="cprog"><div class="cprog-fill" id="prog-3" style="width:0%"></div></div>
+        </div>
+        <span class="cbadge cb-off" id="badge-3">Sin ruta</span>
+        <button class="cbtn-clear" id="clear-3" onclick="pedirLimpiar('cadete3','Burga')" title="Limpiar ruta" style="display:none">🗑</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="dcard">
+      <h3>Resumen del día</h3>
+      <div class="stat-grid">
+        <div class="sbox"><div class="v" id="g-total">0</div><div class="l">Paradas totales</div></div>
+        <div class="sbox"><div class="v" id="g-done">0</div><div class="l">Completadas</div></div>
+        <div class="sbox"><div class="v" id="g-left">0</div><div class="l">Pendientes</div></div>
+        <div class="sbox"><div class="v" id="g-online">0</div><div class="l">Cadetes activos</div></div>
+      </div>
+    </div>
+
+    <!-- Acciones -->
+    <div class="dcard">
+      <h3>Acciones rápidas</h3>
+      <button class="qbtn qbtn-acc" onclick="goTo('opt',document.querySelectorAll('.ntab')[1])">
+        🗺 Crear nueva ruta
+      </button>
+      <button class="qbtn qbtn-ghost" onclick="goTo('tracking',document.querySelectorAll('.ntab')[3])">
+        📍 Ver tracking en vivo
+      </button>
+      <button class="qbtn qbtn-ghost" onclick="goTo('cadete',document.querySelectorAll('.ntab')[2])">
+        🏍 Panel del cadete
+      </button>
+    </div>
+
+    <!-- Links -->
+    <div class="dcard">
+      <h3>Links del sistema</h3>
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:12px">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:7px;padding:8px 10px">
+          <div style="color:var(--t2);margin-bottom:3px;font-size:10px;text-transform:uppercase;letter-spacing:.4px">Optimizador (operador)</div>
+          <a href="optimizador-rutas.html" target="_blank" style="color:var(--acc)">optimizador-rutas.html ↗</a>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:7px;padding:8px 10px">
+          <div style="color:var(--t2);margin-bottom:3px;font-size:10px;text-transform:uppercase;letter-spacing:.4px">App del cadete</div>
+          <a href="cadete.html" target="_blank" style="color:var(--acc)">cadete.html ↗</a>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:7px;padding:8px 10px">
+          <div style="color:var(--t2);margin-bottom:3px;font-size:10px;text-transform:uppercase;letter-spacing:.4px">Tracking (clientes)</div>
+          <a href="tracking.html" target="_blank" style="color:var(--acc)">tracking.html ↗</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="page" id="page-opt"><div class="iframe-wrap"><iframe src="optimizador-rutas.html"></iframe></div></div>
+<div class="page" id="page-cadete"><div class="iframe-wrap"><iframe src="cadete.html"></iframe></div></div>
+<div class="page" id="page-tracking"><div class="iframe-wrap"><iframe src="tracking.html"></iframe></div></div>
+
+<div id="modal"></div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getDatabase, ref, onValue, set, remove }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+const db = getDatabase(initializeApp({
+  apiKey:"AIzaSyA3VtggM1r_2ZoViTeO4xS3nKDj2B1NKnA",
+  authDomain:"logistica-251a5.firebaseapp.com",
+  databaseURL:"https://logistica-251a5-default-rtdb.firebaseio.com",
+  projectId:"logistica-251a5",
+  storageBucket:"logistica-251a5.firebasestorage.app",
+  messagingSenderId:"832966074634",
+  appId:"1:832966074634:web:a774aff677e8230d40daf3"
+}));
+
+const CADETES=[
+  {id:'cadete1',num:'1'},
+  {id:'cadete2',num:'2'},
+  {id:'cadete3',num:'3'},
+];
+
+// Estado limpio por cadete
+const ST={
+  cadete1:{stops:0,done:0,online:false,hasRuta:false},
+  cadete2:{stops:0,done:0,online:false,hasRuta:false},
+  cadete3:{stops:0,done:0,online:false,hasRuta:false},
+};
+
+CADETES.forEach(c=>{
+  const n=c.num;
+
+  // RUTA — si no tiene ruta, done = 0 siempre
+  onValue(ref(db,'rutas/'+c.id), snap=>{
+    const d=snap.val();
+    const hasRuta=!!(d&&d.stops&&d.stops.length>0);
+    ST[c.id].hasRuta=hasRuta;
+    ST[c.id].stops=hasRuta?d.stops.length:0;
+    if(!hasRuta) ST[c.id].done=0; // sin ruta = sin completadas
+    updateCadete(n,c.id);
+    updateGlobal();
+  });
+
+  // DONE — solo contar si tiene ruta
+  onValue(ref(db,'tracking/'+c.id+'/done'), snap=>{
+    const d=snap.val();
+    const cnt=d?Object.values(d).length:0;
+    // Solo actualizar done si tiene ruta activa
+    if(ST[c.id].hasRuta) ST[c.id].done=cnt;
+    else ST[c.id].done=0;
+    updateCadete(n,c.id);
+    updateGlobal();
+  });
+
+  // SESSION/GPS
+  onValue(ref(db,'tracking/'+c.id+'/session'), snap=>{
+    const s=snap.val();
+    ST[c.id].online=!!(s&&s.active);
+    updateCadete(n,c.id);
+    updateGlobal();
+    const dot=document.getElementById('dot-'+n);
+    if(dot) dot.className='dot'+(ST[c.id].online?' on':'');
+  });
+});
+
+function updateCadete(n, cid){
+  const s=ST[cid];
+  const meta=document.getElementById('meta-'+n);
+  const badge=document.getElementById('badge-'+n);
+  const prog=document.getElementById('prog-'+n);
+  const clearBtn=document.getElementById('clear-'+n);
+  if(!meta||!badge||!prog) return;
+
+  if(!s.hasRuta){
+    meta.textContent='Sin ruta asignada';
+    badge.className='cbadge cb-off';badge.textContent='Sin ruta';
+    prog.style.width='0%';
+    if(clearBtn)clearBtn.style.display='none';
+    return;
+  }
+
+  const pct=s.stops>0?Math.round(s.done/s.stops*100):0;
+  meta.textContent=s.done+' de '+s.stops+' paradas completadas';
+  prog.style.width=pct+'%';
+  if(clearBtn)clearBtn.style.display='block';
+
+  if(s.done>=s.stops&&s.stops>0){
+    badge.className='cbadge cb-done';badge.textContent='✓ Completo';
+  } else if(s.online){
+    badge.className='cbadge cb-on';badge.textContent='🟢 En vivo';
+  } else {
+    badge.className='cbadge cb-ruta';badge.textContent='Con ruta';
+  }
+}
+
+function updateGlobal(){
+  // Solo sumar cadetes que tienen ruta
+  const total=CADETES.reduce((a,c)=>a+(ST[c.id].hasRuta?ST[c.id].stops:0),0);
+  const done=CADETES.reduce((a,c)=>a+(ST[c.id].hasRuta?ST[c.id].done:0),0);
+  const online=CADETES.filter(c=>ST[c.id].online).length;
+  document.getElementById('g-total').textContent=total;
+  document.getElementById('g-done').textContent=done;
+  document.getElementById('g-left').textContent=Math.max(0,total-done);
+  document.getElementById('g-online').textContent=online;
+}
+
+// LIMPIAR RUTA
+window.limpiarRuta = async function(cadeteId){
+  document.getElementById('modal').innerHTML='';
+  await set(ref(db,'rutas/'+cadeteId),null);
+  await set(ref(db,'tracking/'+cadeteId+'/done'),null);
+  await set(ref(db,'tracking/'+cadeteId+'/session'),{active:false});
+};
+
+window.pedirLimpiar = function(cadeteId, nombre){
+  document.getElementById('modal').innerHTML=`
+    <div class="mbg" onclick="cerrarModal(event)">
+      <div class="mbox">
+        <h3>🗑 Limpiar ruta de ${nombre}</h3>
+        <p>Esto borra la ruta asignada y todas las paradas completadas de ${nombre}. No se puede deshacer.</p>
+        <div class="macts">
+          <button class="mbtn mbtn-cancel" onclick="cerrarModal()">Cancelar</button>
+          <button class="mbtn mbtn-danger" onclick="limpiarRuta('${cadeteId}')">Limpiar</button>
+        </div>
+      </div>
+    </div>`;
+};
+
+window.cerrarModal=function(e){
+  if(!e||e.target.classList.contains('mbg'))
+    document.getElementById('modal').innerHTML='';
+};
+</script>
+
+<script>
+function goTo(page,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.ntab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('page-'+page).classList.add('on');
+  btn.classList.add('on');
+}
+</script>
+</body>
+</html>
