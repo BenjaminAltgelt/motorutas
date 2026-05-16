@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Seguimiento en vivo — MotoRutas</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#131624;--panel:#1a1e30;--card:#20253a;--border:rgba(255,255,255,.08);
+  --acc:#5b8df6;--green:#29c47a;--amber:#f0a52a;--red:#e05252;
+  --t1:#e8ecff;--t2:#7a85a8;--t3:#3d4460;--f:system-ui,-apple-system,sans-serif}
+html,body{height:100%;background:var(--bg);color:var(--t1);font-family:var(--f)}
+body{display:flex;flex-direction:column;height:100%;overflow:hidden}
+
+.topbar{background:var(--panel);border-bottom:1px solid var(--border);padding:10px 14px;
+  display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.topbar h1{font-size:14px;font-weight:700}
+.topbar p{font-size:11px;color:var(--t2);margin-top:2px}
+.badge{padding:4px 10px;border-radius:99px;font-size:11px;font-weight:700}
+.bon{background:rgba(41,196,122,.2);color:#4de09a}
+.boff{background:rgba(224,82,82,.2);color:#f08080}
+.bwait{background:rgba(240,165,42,.2);color:#f7c97a}
+
+/* PANTALLA BIENVENIDA */
+#screen-welcome{flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:24px;text-align:center;gap:14px}
+#screen-welcome h2{font-size:20px;font-weight:700}
+#screen-welcome p{font-size:13px;color:var(--t2);max-width:280px;line-height:1.5}
+.inp-addr{width:100%;max-width:320px;padding:11px 13px;background:var(--card);
+  border:1px solid var(--border);border-radius:8px;color:var(--t1);font-size:14px;
+  font-family:var(--f);outline:none;transition:border-color .15s}
+.inp-addr:focus{border-color:var(--acc)}
+.inp-addr::placeholder{color:var(--t3)}
+.ok-msg{font-size:11px;color:#4de09a;display:none;max-width:320px}
+.btn-ver{width:100%;max-width:320px;padding:12px;background:var(--acc);border:none;
+  border-radius:8px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;
+  font-family:var(--f);transition:background .15s}
+.btn-ver:hover{background:#4a7de8}
+.btn-skip{font-size:12px;color:var(--t3);cursor:pointer;background:none;border:none;
+  font-family:var(--f);text-decoration:underline;padding:4px}
+
+/* PANTALLA PRINCIPAL */
+#screen-main{display:none;flex:1;flex-direction:column;overflow:hidden}
+.selbar{background:var(--card);border-bottom:1px solid var(--border);
+  padding:8px 14px;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.selbar label{font-size:11px;color:var(--t2);font-weight:700;white-space:nowrap}
+.selbar select{flex:1;padding:6px 10px;background:var(--bg);border:1px solid var(--border);
+  border-radius:6px;color:var(--t1);font-size:13px;font-family:var(--f);outline:none;cursor:pointer}
+.banner{padding:8px 14px;font-size:12px;font-weight:700;flex-shrink:0;
+  display:flex;align-items:center;gap:8px;display:none}
+.banner-wait{background:rgba(240,165,42,.12);border-bottom:1px solid rgba(240,165,42,.2);color:#f7c97a}
+.banner-next{background:rgba(41,196,122,.12);border-bottom:1px solid rgba(41,196,122,.2);color:#4de09a}
+#map{flex:1;min-height:0}
+.bottom{background:var(--panel);border-top:1px solid var(--border);
+  flex-shrink:0;overflow-y:auto;max-height:42vh}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:10px 12px 6px}
+.stat{background:var(--card);border-radius:8px;padding:7px;border:1px solid var(--border);text-align:center}
+.sv{font-size:20px;font-weight:700;font-family:monospace}
+.sl{font-size:10px;color:var(--t2);text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+.list{padding:0 12px 12px}
+.sitem{display:flex;align-items:center;gap:8px;padding:9px 11px;margin-bottom:5px;
+  background:var(--card);border:1px solid var(--border);border-radius:8px}
+.sitem.done{opacity:.4}
+.sitem.mine{border-color:var(--amber);background:rgba(240,165,42,.07)}
+.sitem.next-stop{border-color:var(--green);background:rgba(41,196,122,.07)}
+.sn{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.sinfo{flex:1;min-width:0}
+.sname{font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sadr{font-size:10px;color:var(--t2);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stag{font-size:10px;padding:2px 8px;border-radius:99px;font-weight:700;flex-shrink:0;white-space:nowrap}
+.tmine{background:rgba(240,165,42,.2);color:#f7c97a}
+.tnext{background:rgba(41,196,122,.2);color:#4de09a}
+.tdone{background:rgba(255,255,255,.07);color:var(--t2)}
+.summary-box{text-align:center;padding:11px 14px;margin-bottom:6px;
+  border-radius:8px;font-size:13px;font-weight:700}
+.summary-wait{background:rgba(240,165,42,.1);border:1px solid rgba(240,165,42,.2);color:#f7c97a}
+.summary-next{background:rgba(41,196,122,.1);border:1px solid rgba(41,196,122,.2);color:#4de09a}
+.summary-sub{font-size:11px;font-weight:400;color:var(--t2);margin-top:3px}
+.offline{padding:30px;text-align:center;color:var(--t3)}
+.offline h2{font-size:15px;color:var(--t2);margin-bottom:6px}
+.pac-container{z-index:99999!important}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div><h1>📦 Seguimiento en vivo</h1><p id="hdr-sub">MotoRutas</p></div>
+  <span class="badge bwait" id="badge">Conectando…</span>
+</div>
+
+<!-- BIENVENIDA (solo si viene del link del cadete) -->
+<div id="screen-welcome">
+  <div style="font-size:52px">📦</div>
+  <h2>Tu entrega está en camino</h2>
+  <p id="welcome-txt">Ingresá tu dirección para ver cuántas paradas faltan antes de llegar a vos.</p>
+  <input class="inp-addr" id="inp-dir" placeholder="Ej: Corrientes 1234, Buenos Aires" autocomplete="off"/>
+  <div class="ok-msg" id="ok-msg"></div>
+  <button class="btn-ver" onclick="confirmar()">Ver mi posición en la ruta</button>
+  <button class="btn-skip" onclick="mostrarMain(true)">Ver la ruta sin marcar mi parada</button>
+</div>
+
+<!-- PRINCIPAL -->
+<div id="screen-main">
+  <div id="banner" class="banner"></div>
+  <div class="selbar" id="selbar">
+    <label>Ver cadete:</label>
+    <select id="sel-c" onchange="cambiarCadete()">
+      <option value="cadete1">🧢 Franco</option>
+      <option value="cadete2">⛑️ Benja</option>
+      <option value="cadete3">🎯 Burga</option>
+    </select>
+  </div>
+  <div id="map"></div>
+  <div class="bottom">
+    <div class="stats">
+      <div class="stat"><div class="sv" id="st-a">—</div><div class="sl">Antes de vos</div></div>
+      <div class="stat"><div class="sv" id="st-d">—</div><div class="sl">Entregadas</div></div>
+      <div class="stat"><div class="sv" id="st-t">—</div><div class="sl">Total</div></div>
+    </div>
+    <div class="list" id="list"><div class="offline"><h2>Cargando…</h2></div></div>
+  </div>
+</div>
+
+<script>
+// ── GOOGLE MAPS ──────────────────────────────────
+window.initMap = function(){
+  window._map = new google.maps.Map(document.getElementById('map'),{
+    center:{lat:-34.61,lng:-58.44}, zoom:13,
+    styles:[
+      {elementType:'geometry',stylers:[{color:'#1d2237'}]},
+      {elementType:'labels.text.fill',stylers:[{color:'#7a85a8'}]},
+      {elementType:'labels.text.stroke',stylers:[{color:'#131624'}]},
+      {featureType:'road',elementType:'geometry',stylers:[{color:'#282f4a'}]},
+      {featureType:'road.highway',elementType:'geometry',stylers:[{color:'#2e3650'}]},
+      {featureType:'water',elementType:'geometry',stylers:[{color:'#0d1322'}]},
+      {featureType:'poi',stylers:[{visibility:'off'}]},
+      {featureType:'transit',stylers:[{visibility:'off'}]},
+      {featureType:'landscape',stylers:[{color:'#1a1e30'}]},
+    ],
+    zoomControl:true,streetViewControl:false,mapTypeControl:false,fullscreenControl:false,
+  });
+  window._mapReady = true;
+
+  // Autocomplete en la pantalla de bienvenida
+  const ac = new google.maps.places.Autocomplete(
+    document.getElementById('inp-dir'),
+    {componentRestrictions:{country:'ar'}, fields:['geometry','formatted_address','name']}
+  );
+  ac.addListener('place_changed', ()=>{
+    const p = ac.getPlace();
+    if(!p.geometry) return;
+    window._miGeo = {lat:p.geometry.location.lat(), lng:p.geometry.location.lng(), label:p.formatted_address||p.name};
+    const ok = document.getElementById('ok-msg');
+    ok.style.display = 'block';
+    ok.textContent = '✓ ' + window._miGeo.label;
+  });
+
+  if(window._onMapReady){ window._onMapReady(); window._onMapReady=null; }
+};
+</script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA2x43lq6YlfNy42WLcuT0Q-pjE8YNLdf0&libraries=places&callback=initMap" async defer></script>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getDatabase, ref, onValue, off } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+const db = getDatabase(initializeApp({
+  apiKey:"AIzaSyA3VtggM1r_2ZoViTeO4xS3nKDj2B1NKnA",
+  authDomain:"logistica-251a5.firebaseapp.com",
+  databaseURL:"https://logistica-251a5-default-rtdb.firebaseio.com",
+  projectId:"logistica-251a5",
+  storageBucket:"logistica-251a5.firebasestorage.app",
+  messagingSenderId:"832966074634",
+  appId:"1:832966074634:web:a774aff677e8230d40daf3"
+}));
+
+const NOMBRES = {cadete1:'Franco', cadete2:'Benja', cadete3:'Burga'};
+const params  = new URLSearchParams(window.location.search);
+const fromLink= !!params.get('s');
+let cId       = params.get('c') || 'cadete1';
+
+let stops=[], doneSet=new Set(), myIdx=-1;
+let motoMk=null, stopMks=[], poly=null, myMk=null;
+let fbRefs=[];
+
+// ── INIT ─────────────────────────────────────────
+if(fromLink){
+  // Cliente: mostrar pantalla de bienvenida
+  document.getElementById('screen-welcome').style.display = 'flex';
+  document.getElementById('screen-main').style.display    = 'none';
+  document.getElementById('hdr-sub').textContent = 'Tu entrega con ' + (NOMBRES[cId]||'el cadete');
+} else {
+  // Operador: ir directo al tracking
+  document.getElementById('screen-welcome').style.display = 'none';
+  mostrarMain(true);
+}
+
+// ── CONFIRMAR DIRECCIÓN ───────────────────────────
+window.confirmar = function(){
+  const geo = window._miGeo;
+  if(!geo){
+    alert('Seleccioná tu dirección de la lista que aparece mientras escribís.');
+    return;
+  }
+  mostrarMain(false);
+  // Si los stops ya cargaron, encontrar parada. Si no, esperar.
+  if(stops.length > 0){
+    encontrarMiParada(geo);
+  } else {
+    window._geoParaAsignar = geo;
+  }
+};
+
+window.mostrarMain = function(conSelector){
+  document.getElementById('screen-welcome').style.display = 'none';
+  const main = document.getElementById('screen-main');
+  main.style.display = 'flex';
+  main.style.flexDirection = 'column';
+  // Mostrar selector solo para el operador
+  document.getElementById('selbar').style.display = conSelector ? 'flex' : 'none';
+  document.getElementById('sel-c').value = cId;
+  suscribir();
+};
+
+window.cambiarCadete = function(){
+  cId = document.getElementById('sel-c').value;
+  detach(); limpiarMapa();
+  stops=[]; doneSet=new Set(); myIdx=-1;
+  document.getElementById('list').innerHTML='<div class="offline"><h2>Cargando…</h2></div>';
+  suscribir();
+};
+
+// ── FIREBASE ──────────────────────────────────────
+function suscribir(){
+  const rRuta = ref(db,'rutas/'+cId); fbRefs.push(rRuta);
+  onValue(rRuta, snap=>{
+    const d = snap.val();
+    if(!d||!d.stops||!d.stops.length){
+      document.getElementById('list').innerHTML='<div class="offline"><h2>Sin ruta asignada</h2></div>';
+      renderStats(); return;
+    }
+    stops = d.stops;
+    // Si el cliente ya confirmó su dirección, encontrar su parada ahora
+    if(window._geoParaAsignar){
+      encontrarMiParada(window._geoParaAsignar);
+      window._geoParaAsignar = null;
+    }
+    renderList(); renderStats();
+    if(window._mapReady) renderMapa();
+    else window._onMapReady = renderMapa;
+  });
+
+  const rDone = ref(db,'tracking/'+cId+'/done'); fbRefs.push(rDone);
+  onValue(rDone, snap=>{
+    const d = snap.val();
+    doneSet = new Set(d ? Object.values(d) : []);
+    renderList(); renderStats();
+    if(window._mapReady) renderMapa();
+  });
+
+  const rLoc = ref(db,'tracking/'+cId+'/location'); fbRefs.push(rLoc);
+  onValue(rLoc, snap=>{
+    const loc = snap.val();
+    if(!loc||!loc.lat){
+      document.getElementById('badge').className='badge boff';
+      document.getElementById('badge').textContent='Cadete offline'; return;
+    }
+    document.getElementById('badge').className='badge bon';
+    document.getElementById('badge').textContent='🟢 En vivo';
+    document.getElementById('hdr-sub').textContent=
+      (NOMBRES[cId]||'Cadete')+' · '+new Date(loc.timestamp).toLocaleTimeString('es-AR');
+    if(!window._mapReady) return;
+    const pos={lat:loc.lat,lng:loc.lng};
+    if(!motoMk){
+      const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44">
+        <circle cx="22" cy="22" r="20" fill="#5b8df6" stroke="white" stroke-width="2.5"/>
+        <text x="22" y="29" text-anchor="middle" font-size="20">🏍</text></svg>`;
+      motoMk=new google.maps.Marker({map:window._map,position:pos,zIndex:100,
+        icon:{url:'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg),
+          scaledSize:new google.maps.Size(44,44),anchor:new google.maps.Point(22,22)}});
+    } else { motoMk.setPosition(pos); }
+    window._map.panTo(pos);
+  });
+
+  const rSes = ref(db,'tracking/'+cId+'/session'); fbRefs.push(rSes);
+  onValue(rSes, snap=>{
+    const s=snap.val();
+    if(!s||!s.active){
+      document.getElementById('badge').className='badge boff';
+      document.getElementById('badge').textContent='Cadete offline';
+    }
+  });
+}
+
+function detach(){ fbRefs.forEach(r=>{try{off(r);}catch(e){}}); fbRefs=[]; }
+function limpiarMapa(){
+  stopMks.forEach(m=>m.setMap(null)); stopMks=[];
+  if(poly){poly.setMap(null);poly=null;}
+  if(window._dirRenderer){window._dirRenderer.setMap(null);window._dirRenderer=null;}
+  if(motoMk){motoMk.setMap(null);motoMk=null;}
+  if(myMk){myMk.setMap(null);myMk=null;}
+}
+
+// ── ENCONTRAR MI PARADA ───────────────────────────
+function haversine(a,b){
+  const R=6371,dLa=(b.lat-a.lat)*Math.PI/180,dLo=(b.lng-a.lng)*Math.PI/180;
+  const x=Math.sin(dLa/2)**2+Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLo/2)**2;
+  return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
+}
+
+function encontrarMiParada(geo){
+  if(!stops.length||!geo) return;
+  let minDist=Infinity, minIdx=-1;
+  stops.forEach((s,i)=>{
+    const d = haversine({lat:s.lat,lng:s.lng},{lat:geo.lat,lng:geo.lng});
+    if(d<minDist){ minDist=d; minIdx=i; }
+  });
+  myIdx = minIdx;
+  const s = stops[myIdx];
+
+  // Marker de la parada del cliente
+  if(myMk) myMk.setMap(null);
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="38" height="46" viewBox="0 0 38 46">
+    <path d="M19 0C8.5 0 0 8.5 0 19c0 13.5 19 27 19 27S38 32.5 38 19C38 8.5 29.5 0 19 0z"
+      fill="#f0a52a" stroke="white" stroke-width="2"/>
+    <text x="19" y="24" text-anchor="middle" font-size="16">🏠</text></svg>`;
+  myMk=new google.maps.Marker({map:window._map,position:{lat:s.lat,lng:s.lng},zIndex:20,
+    icon:{url:'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg),
+      scaledSize:new google.maps.Size(38,46),anchor:new google.maps.Point(19,46)},
+    title:'Tu parada'});
+  new google.maps.InfoWindow({content:'<div style="font-family:system-ui;font-size:12px"><b>📦 Tu entrega</b></div>'})
+    .open(window._map,myMk);
+
+  // Banner
+  const befPending = stops.filter((x,j)=>j<myIdx&&!doneSet.has(String(x.id))).length;
+  const banner = document.getElementById('banner');
+  banner.style.display = 'flex';
+  if(befPending===0){
+    banner.className='banner banner-next';
+    banner.textContent='🔜 ¡La próxima parada es la tuya!';
+  } else {
+    banner.className='banner banner-wait';
+    banner.textContent='⏳ '+befPending+' parada'+(befPending!==1?'s':'')+' antes de la tuya';
+  }
+
+  window._map.setCenter({lat:s.lat,lng:s.lng});
+  window._map.setZoom(15);
+  renderList(); renderStats();
+  renderMapa();
+}
+
+// ── RENDER LISTA ──────────────────────────────────
+function renderList(){
+  const el = document.getElementById('list');
+  if(!stops.length) return;
+
+  const clientMode = myIdx >= 0;
+
+  if(clientMode){
+    // MODO CLIENTE: solo su parada + conteos sin revelar otras direcciones
+    const s    = stops[myIdx];
+    const done = doneSet.has(String(s.id));
+    const befPending = stops.filter((x,j)=>j<myIdx&&!doneSet.has(String(x.id))).length;
+    const befDone    = stops.filter((x,j)=>j<myIdx&&doneSet.has(String(x.id))).length;
+    const aftPending = stops.filter((x,j)=>j>myIdx&&!doneSet.has(String(x.id))).length;
+
+    let html = '';
+
+    // Resumen ANTES (sin mostrar direcciones)
+    if(befPending > 0){
+      html += `<div class="summary-box summary-wait">
+        ⏳ ${befPending} parada${befPending!==1?'s':''} antes de la tuya
+        <div class="summary-sub">${befDone>0?befDone+' ya entregada'+(befDone!==1?'s':'')+' · ':''}</div>
+      </div>`;
+    } else if(!done){
+      html += `<div class="summary-box summary-next">🔜 ¡La próxima es tu entrega!</div>`;
+    }
+
+    // Su parada
+    html += `<div class="sitem mine">
+      <div class="sn" style="background:${s.color}22;color:${s.color}">${done?'✓':myIdx+1}</div>
+      <div class="sinfo">
+        <div class="sname">${esc(s.name)}</div>
+        <div class="sadr">${esc(s.addr)}</div>
+        ${s.arrivalTime?`<div style="font-size:10px;color:var(--amber);margin-top:2px">🕐 ${s.arrivalTime}</div>`:''}
+      </div>
+      <span class="stag ${done?'tdone':'tmine'}">${done?'✓ Entregado':'📦 Tu entrega'}</span>
+    </div>`;
+
+    // Resumen DESPUÉS (sin mostrar direcciones)
+    if(aftPending>0 && !done){
+      html += `<div style="text-align:center;font-size:11px;color:var(--t3);padding:8px">
+        + ${aftPending} parada${aftPending!==1?'s':''} después de la tuya
+      </div>`;
+    }
+
+    el.innerHTML = html;
+
+  } else {
+    // MODO OPERADOR: ver todo completo
+    const rem = stops.filter(s=>!doneSet.has(String(s.id)));
+    el.innerHTML = stops.map((s,i)=>{
+      const done   = doneSet.has(String(s.id));
+      const isNext = !done && rem.length && rem[0].id===s.id;
+      return `<div class="sitem ${done?'done':''} ${isNext?'next-stop':''}">
+        <div class="sn" style="background:${s.color}22;color:${s.color}">${done?'✓':i+1}</div>
+        <div class="sinfo">
+          <div class="sname">${esc(s.name)}</div>
+          <div class="sadr">${esc(s.addr)}</div>
+          ${s.arrivalTime?`<div style="font-size:10px;color:var(--amber);margin-top:2px">🕐 ${s.arrivalTime}</div>`:''}
+        </div>
+        ${done?'<span class="stag tdone">✓</span>':isNext?'<span class="stag tnext">🔜 Next</span>':''}
+      </div>`;
+    }).join('');
+  }
+}
+
+// ── STATS ─────────────────────────────────────────
+function renderStats(){
+  const t = stops.length;
+  const d = stops.filter(s=>doneSet.has(String(s.id))).length;
+  const a = myIdx>=0
+    ? stops.filter((s,i)=>i<myIdx&&!doneSet.has(String(s.id))).length
+    : t-d;
+  document.getElementById('st-a').textContent = a;
+  document.getElementById('st-d').textContent = d;
+  document.getElementById('st-t').textContent = t;
+}
+
+// ── MAPA ──────────────────────────────────────────
+function renderMapa(){
+  stopMks.forEach(m=>m.setMap(null)); stopMks=[];
+  if(poly){poly.setMap(null);poly=null;}
+  if(!stops.length) return;
+  const rem    = stops.filter(s=>!doneSet.has(String(s.id)));
+  const bounds = new google.maps.LatLngBounds();
+  stops.forEach((s,i)=>{
+    const done   = doneSet.has(String(s.id));
+    const isMine = i===myIdx;
+    const isNext = !done&&rem.length&&rem[0].id===s.id;
+    if(isMine) return; // ya tiene su propio marker (myMk)
+    const color  = done?'#555':s.color;
+    const border = isNext?'#29c47a':'white';
+    const bw     = isNext?2.5:1.5;
+    const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="30" height="38" viewBox="0 0 30 38">
+      <path d="M15 0C6.7 0 0 6.7 0 15c0 10.5 15 23 15 23S30 25.5 30 15 23.3 0 15 0z"
+        fill="${color}" stroke="${border}" stroke-width="${bw}"/>
+      <text x="15" y="19.5" text-anchor="middle" font-size="10" font-weight="700"
+        fill="white" font-family="monospace">${done?'✓':i+1}</text></svg>`;
+    const mk=new google.maps.Marker({map:window._map,
+      position:{lat:s.lat,lng:s.lng}, zIndex:isNext?10:5,
+      icon:{url:'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg),
+        scaledSize:new google.maps.Size(30,38),anchor:new google.maps.Point(15,38)}});
+    // En modo cliente no mostrar popups con info de otros
+    if(myIdx<0){
+      let pop=`<div style="font-family:system-ui;font-size:12px"><b>${esc(s.name)}</b>
+        <br><span style="color:#888">${esc(s.addr)}</span>
+        ${done?'<br><span style="color:#29c47a">✓ Entregado</span>':''}
+        ${isNext?'<br><span style="color:#4de09a">🔜 Próxima</span>':''}
+      </div>`;
+      mk.addListener('click',()=>new google.maps.InfoWindow({content:pop}).open(window._map,mk));
+    }
+    stopMks.push(mk);
+    bounds.extend({lat:s.lat,lng:s.lng});
+  });
+  if(myMk) bounds.extend(myMk.getPosition());
+  if(!bounds.isEmpty()) window._map.fitBounds(bounds,40);
+  // Ruta real por calles
+  if(rem.length>1){
+    if(window._dirRenderer){window._dirRenderer.setMap(null);window._dirRenderer=null;}
+    window._dirRenderer=new google.maps.DirectionsRenderer({
+      map:window._map,suppressMarkers:true,
+      polylineOptions:{strokeColor:'#5b8df6',strokeOpacity:.8,strokeWeight:4}
+    });
+    const svc=new google.maps.DirectionsService();
+    const pts=rem.map(s=>new google.maps.LatLng(s.lat,s.lng));
+    svc.route({
+      origin:pts[0],destination:pts[pts.length-1],
+      waypoints:pts.slice(1,-1).map(p=>({location:p,stopover:true})),
+      travelMode:google.maps.TravelMode.DRIVING
+    },(result,status)=>{
+      if(status==='OK') window._dirRenderer.setDirections(result);
+      else {
+        // Fallback línea recta
+        poly=new google.maps.Polyline({map:window._map,
+          path:rem.map(s=>({lat:s.lat,lng:s.lng})),
+          strokeColor:'#5b8df6',strokeOpacity:.7,strokeWeight:3,
+          icons:[{icon:{path:google.maps.SymbolPath.FORWARD_CLOSED_ARROW,scale:2.5},offset:'50%'}]});
+      }
+    });
+  }
+}
+
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+</script>
+</body>
+</html>
