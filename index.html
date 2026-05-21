@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>MotoRutas — Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0e1120;--panel:#151929;--card:#1c2136;--border:rgba(255,255,255,.07);
+  --acc:#5b8df6;--green:#29c47a;--amber:#f0a52a;--red:#e05252;
+  --t1:#e8ecff;--t2:#7a85a8;--t3:#3d4460;--f:system-ui,-apple-system,sans-serif;
+}
+html,body{height:100%;background:var(--bg);color:var(--t1);font-family:var(--f)}
+body{display:flex;flex-direction:column}
+
+nav{background:var(--panel);border-bottom:1px solid var(--border);
+  padding:0 20px;display:flex;align-items:center;gap:0;flex-shrink:0;height:52px}
+.brand{font-size:15px;font-weight:700;margin-right:24px;white-space:nowrap}
+.brand span{color:var(--acc)}
+.nav-tabs{display:flex;height:100%;gap:2px}
+.ntab{padding:0 16px;height:100%;display:flex;align-items:center;gap:7px;
+  font-size:13px;font-weight:600;cursor:pointer;border:none;background:transparent;
+  color:var(--t2);font-family:var(--f);border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
+.ntab:hover{color:var(--t1);background:rgba(255,255,255,.04)}
+.ntab.on{color:var(--acc);border-bottom-color:var(--acc)}
+.nav-right{margin-left:auto;display:flex;gap:10px;align-items:center}
+.dot-wrap{display:flex;align-items:center;gap:5px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--t3);flex-shrink:0}
+.dot.on{background:var(--green);box-shadow:0 0 6px var(--green)}
+.dot-lbl{font-size:11px;color:var(--t2)}
+
+.page{display:none;flex:1;overflow:hidden}
+.page.on{display:flex;flex-direction:column}
+.iframe-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden}
+iframe{flex:1;border:none;width:100%;height:100%}
+
+/* DASHBOARD */
+.dash{flex:1;padding:20px;overflow-y:auto;display:grid;
+  grid-template-columns:1fr 1fr;gap:16px;align-content:start}
+.dcard{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px}
+.dcard h3{font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;
+  letter-spacing:.5px;margin-bottom:12px}
+
+/* Cadete row */
+.crow{display:flex;align-items:center;gap:10px;padding:10px 12px;
+  background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:6px}
+.crow:last-child{margin-bottom:0}
+.cavatar{font-size:20px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;
+  background:var(--bg);border-radius:50%;border:1px solid var(--border);flex-shrink:0}
+.cinfo{flex:1;min-width:0}
+.cname{font-size:13px;font-weight:700}
+.cmeta{font-size:11px;color:var(--t2);margin-top:2px}
+.cprog{background:var(--bg);border-radius:99px;height:5px;margin-top:5px;overflow:hidden}
+.cprog-fill{height:100%;border-radius:99px;background:var(--green);transition:width .4s}
+.cbadge{font-size:10px;padding:3px 8px;border-radius:99px;font-weight:700;flex-shrink:0;white-space:nowrap}
+.cb-on{background:rgba(41,196,122,.2);color:#4de09a}
+.cb-off{background:rgba(255,255,255,.07);color:var(--t2)}
+.cb-ruta{background:rgba(91,141,246,.2);color:#93baff}
+.cb-done{background:rgba(41,196,122,.3);color:#29c47a}
+
+/* Acción limpiar */
+.cbtn-clear{background:none;border:none;cursor:pointer;color:var(--t3);font-size:12px;
+  padding:3px 6px;border-radius:5px;transition:all .15s;flex-shrink:0}
+.cbtn-clear:hover{background:rgba(224,82,82,.15);color:var(--red)}
+
+/* Stats globales */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sbox{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.sbox .v{font-size:26px;font-weight:700;font-family:monospace}
+.sbox .l{font-size:10px;color:var(--t2);text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+
+/* Acciones rápidas */
+.qbtn{width:100%;padding:10px;border-radius:8px;font-size:13px;font-weight:700;
+  cursor:pointer;font-family:var(--f);transition:all .15s;border:1px solid var(--border);
+  margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.qbtn:last-child{margin-bottom:0}
+.qbtn-acc{background:var(--acc);color:#fff;border-color:var(--acc)}.qbtn-acc:hover{background:#4a7de8}
+.qbtn-ghost{background:transparent;color:var(--t2)}.qbtn-ghost:hover{background:var(--card);color:var(--t1)}
+
+/* Modal */
+.mbg{position:fixed;inset:0;background:rgba(4,5,14,.88);display:flex;
+  align-items:center;justify-content:center;z-index:9000}
+.mbox{background:var(--panel);border:1px solid rgba(255,255,255,.12);border-radius:12px;
+  padding:22px;width:300px;max-width:90vw}
+.mbox h3{font-size:14px;font-weight:700;margin-bottom:10px}
+.mbox p{font-size:12px;color:var(--t2);margin-bottom:16px;line-height:1.5}
+.macts{display:flex;gap:8px}
+.mbtn{padding:8px 16px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;
+  border:1px solid var(--border);font-family:var(--f)}
+.mbtn-cancel{background:transparent;color:var(--t2)}.mbtn-cancel:hover{background:var(--card)}
+.mbtn-danger{background:var(--red);color:#fff;border-color:var(--red)}.mbtn-danger:hover{background:#c43d3d}
+
+@media(max-width:700px){.dash{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="brand">🏍 <span>MotoRutas</span></div>
+  <div class="nav-tabs">
+    <button class="ntab on" onclick="goTo('dash',this)">📊 Dashboard</button>
+    <button class="ntab" onclick="goTo('opt',this)">🗺 Optimizador</button>
+    <button class="ntab" onclick="goTo('cadete',this)">🏍 Cadete</button>
+    <button class="ntab" onclick="goTo('tracking',this)">📍 Tracking</button>
+  </div>
+  <div class="nav-right" id="nav-dots">
+    <div class="dot-wrap"><div class="dot" id="dot-1"></div><span class="dot-lbl">Franco</span></div>
+    <div class="dot-wrap"><div class="dot" id="dot-2"></div><span class="dot-lbl">Benja</span></div>
+    <div class="dot-wrap"><div class="dot" id="dot-3"></div><span class="dot-lbl">Burga</span></div>
+  </div>
+</nav>
+
+<div class="page on" id="page-dash">
+  <div class="dash">
+
+    <!-- Cadetes -->
+    <div class="dcard">
+      <h3>Estado de cadetes</h3>
+      <div id="estado-cadetes">
+        <div style="color:var(--t3);font-size:12px;text-align:center;padding:16px">Cargando…</div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="dcard">
+      <h3>Resumen del día</h3>
+      <div class="stat-grid">
+        <div class="sbox"><div class="v" id="g-total">0</div><div class="l">Paradas totales</div></div>
+        <div class="sbox"><div class="v" id="g-done">0</div><div class="l">Completadas</div></div>
+        <div class="sbox"><div class="v" id="g-left">0</div><div class="l">Pendientes</div></div>
+        <div class="sbox"><div class="v" id="g-online">0</div><div class="l">Cadetes activos</div></div>
+      </div>
+    </div>
+
+    <!-- Acciones -->
+    <div class="dcard">
+      <h3>Acciones rápidas</h3>
+      <button class="qbtn qbtn-acc" onclick="goTo('opt',document.querySelectorAll('.ntab')[1])">
+        🗺 Crear nueva ruta
+      </button>
+      <button class="qbtn qbtn-ghost" onclick="goTo('tracking',document.querySelectorAll('.ntab')[3])">
+        📍 Ver tracking en vivo
+      </button>
+      <button class="qbtn qbtn-ghost" onclick="goTo('cadete',document.querySelectorAll('.ntab')[2])">
+        🏍 Panel del cadete
+      </button>
+    </div>
+
+    <!-- Configurar cadetes -->
+    <div class="dcard" id="card-cadetes-config">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <h3 style="margin-bottom:0">Cadetes</h3>
+        <button onclick="abrirEditarCadetes()" style="background:transparent;border:1px solid var(--border);
+          border-radius:6px;padding:4px 10px;font-size:11px;color:var(--t2);cursor:pointer;font-family:var(--f)">
+          ✏️ Editar
+        </button>
+      </div>
+      <div id="cadetes-lista"></div>
+    </div>
+
+    <!-- Caja Móvil -->
+    <div class="dcard" id="card-caja">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <h3 style="margin-bottom:0">💼 Caja móvil</h3>
+        <button onclick="guardarCajas()" style="background:var(--green);border:none;border-radius:6px;
+          padding:5px 12px;font-size:11px;color:#04200e;cursor:pointer;font-family:var(--f);font-weight:700">
+          💾 Guardar
+        </button>
+      </div>
+      <div id="cajas-container">
+        <div style="color:var(--t3);font-size:12px;text-align:center;padding:10px">Cargando…</div>
+      </div>
+    </div>
+
+    <!-- Links -->
+    <div class="dcard">
+      <h3>Links del sistema</h3>
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:12px">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:7px;padding:8px 10px">
+          <div style="color:var(--t2);margin-bottom:3px;font-size:10px;text-transform:uppercase;letter-spacing:.4px">Optimizador (operador)</div>
+          <a href="optimizador-rutas.html" target="_blank" style="color:var(--acc)">optimizador-rutas.html ↗</a>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:7px;padding:8px 10px">
+          <div style="color:var(--t2);margin-bottom:3px;font-size:10px;text-transform:uppercase;letter-spacing:.4px">App del cadete</div>
+          <a href="cadete.html" target="_blank" style="color:var(--acc)">cadete.html ↗</a>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:7px;padding:8px 10px">
+          <div style="color:var(--t2);margin-bottom:3px;font-size:10px;text-transform:uppercase;letter-spacing:.4px">Tracking (clientes)</div>
+          <a href="tracking.html" target="_blank" style="color:var(--acc)">tracking.html ↗</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="page" id="page-opt"><div class="iframe-wrap"><iframe src="optimizador-rutas.html"></iframe></div></div>
+<div class="page" id="page-cadete"><div class="iframe-wrap"><iframe src="cadete.html"></iframe></div></div>
+<div class="page" id="page-tracking">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:30px;text-align:center;min-height:0">
+    <div style="font-size:52px">📍</div>
+    <h2 style="font-size:18px;font-weight:700">Tracking en vivo</h2>
+    <p style="font-size:13px;color:var(--t2);max-width:320px;line-height:1.6">
+      El tracking usa Google Maps y necesita abrirse en una pestaña propia para funcionar correctamente.
+    </p>
+    <div id="tracking-btns" style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:300px">
+      <div style="color:var(--t3);font-size:12px">Cargando cadetes…</div>
+    </div>
+    <p style="font-size:11px;color:var(--t3);max-width:280px">
+      El link que el cadete comparte con sus clientes también los lleva al tracking con su dirección marcada.
+    </p>
+  </div>
+</div>
+
+<div id="modal"></div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getDatabase, ref, onValue, set, remove }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+const db = getDatabase(initializeApp({
+  apiKey:"AIzaSyA3VtggM1r_2ZoViTeO4xS3nKDj2B1NKnA",
+  authDomain:"logistica-251a5.firebaseapp.com",
+  databaseURL:"https://logistica-251a5-default-rtdb.firebaseio.com",
+  projectId:"logistica-251a5",
+  storageBucket:"logistica-251a5.firebasestorage.app",
+  messagingSenderId:"832966074634",
+  appId:"1:832966074634:web:a774aff677e8230d40daf3"
+}));
+
+// ── ESTADO GLOBAL ─────────────────────────────
+let CADETES = []; // se llena desde Firebase
+const ST = {}; // estado por cadeteId
+
+// ── CADETES DESDE FIREBASE ────────────────────
+onValue(ref(db,'cadetes'), snap=>{
+  const data = snap.val() || {};
+  const entries = Object.entries(data).filter(([id,v])=>v&&v.nombre);
+  
+  if(!entries.length){
+    // Defaults si Firebase está vacío
+    CADETES = [
+      {id:'cadete1',nombre:'Franco',emoji:'🧢'},
+      {id:'cadete2',nombre:'Benja', emoji:'⛑️'},
+      {id:'cadete3',nombre:'Burga', emoji:'🎯'},
+    ];
+  } else {
+    CADETES = entries.map(([id,v])=>({id, nombre:v.nombre, emoji:v.emoji||'🏍'}));
+  }
+
+  renderEstadoCadetes();
+  renderTrackingBtns();
+  renderNavDots();
+  renderCadetesLista();
+  renderCajaMovil();
+
+  // Suscribir a rutas/tracking de cada cadete
+  CADETES.forEach(c=>{
+    if(!ST[c.id]) ST[c.id]={stops:0,done:0,online:false,hasRuta:false};
+    subscribeToRuta(c.id);
+    subscribeToSession(c.id);
+  });
+});
+
+// ── SUSCRIPCIONES ─────────────────────────────
+const _unsubs = {};
+function subscribeToRuta(cid){
+  onValue(ref(db,'rutas/'+cid), snap=>{
+    const d=snap.val();
+    const hasRuta=!!(d&&d.stops&&d.stops.length>0);
+    if(!ST[cid]) ST[cid]={stops:0,done:0,online:false,hasRuta:false};
+    ST[cid].hasRuta=hasRuta;
+    ST[cid].stops=hasRuta?d.stops.length:0;
+    if(!hasRuta) ST[cid].done=0;
+    renderEstadoCadetes(); updateGlobal();
+  });
+  onValue(ref(db,'tracking/'+cid+'/done'), snap=>{
+    const d=snap.val();
+    if(!ST[cid]) ST[cid]={stops:0,done:0,online:false,hasRuta:false};
+    ST[cid].done=ST[cid].hasRuta?(d?Object.values(d).length:0):0;
+    renderEstadoCadetes(); updateGlobal();
+  });
+}
+function subscribeToSession(cid){
+  onValue(ref(db,'tracking/'+cid+'/session'), snap=>{
+    const s=snap.val();
+    if(!ST[cid]) ST[cid]={stops:0,done:0,online:false,hasRuta:false};
+    ST[cid].online=!!(s&&s.active);
+    renderEstadoCadetes(); updateGlobal();
+    renderNavDots();
+  });
+}
+
+// ── RENDER ESTADO CADETES ─────────────────────
+function renderEstadoCadetes(){
+  const el=document.getElementById('estado-cadetes');
+  if(!el) return;
+  if(!CADETES.length){el.innerHTML='<p style="color:var(--t3);font-size:12px;text-align:center;padding:16px">Sin cadetes configurados</p>';return;}
+  el.innerHTML=CADETES.map(c=>{
+    const s=ST[c.id]||{stops:0,done:0,online:false,hasRuta:false};
+    const pct=s.stops>0?Math.round(s.done/s.stops*100):0;
+    let badgeCls,badgeTxt;
+    if(!s.hasRuta){badgeCls='cb-off';badgeTxt='Sin ruta';}
+    else if(s.done>=s.stops&&s.stops>0){badgeCls='cb-done';badgeTxt='✓ Completo';}
+    else if(s.online){badgeCls='cb-on';badgeTxt='🟢 En vivo';}
+    else{badgeCls='cb-ruta';badgeTxt='Con ruta';}
+    const meta=s.hasRuta?s.done+' de '+s.stops+' paradas':'Sin ruta asignada';
+    return `<div class="crow">
+      <div class="cavatar">${c.emoji}</div>
+      <div class="cinfo">
+        <div class="cname">${esc2(c.nombre)}</div>
+        <div class="cmeta">${meta}</div>
+        <div class="cprog"><div class="cprog-fill" style="width:${pct}%"></div></div>
+      </div>
+      <span class="cbadge ${badgeCls}">${badgeTxt}</span>
+      ${s.hasRuta?`<button class="cbtn-clear" onclick="pedirLimpiar('${c.id}','${esc2(c.nombre)}')" title="Limpiar ruta">🗑</button>`:'<span style="width:24px"></span>'}
+    </div>`;
+  }).join('');
+}
+
+// ── RENDER TRACKING BTNS ──────────────────────
+function renderTrackingBtns(){
+  const el=document.getElementById('tracking-btns');
+  if(!el) return;
+  const colors=[
+    {bg:'var(--acc)',border:'var(--acc)',color:'#fff'},
+    {bg:'rgba(41,196,122,.2)',border:'rgba(41,196,122,.3)',color:'#4de09a'},
+    {bg:'rgba(240,165,42,.15)',border:'rgba(240,165,42,.3)',color:'#f7c97a'},
+    {bg:'rgba(168,139,250,.2)',border:'rgba(168,139,250,.3)',color:'#c4b5fd'},
+  ];
+  el.innerHTML=CADETES.map((c,i)=>{
+    const col=colors[i%colors.length];
+    return `<a href="tracking.html?c=${c.id}" target="_blank" class="qbtn"
+      style="text-decoration:none;justify-content:center;background:${col.bg};
+      border:1px solid ${col.border};color:${col.color};border-radius:8px;
+      padding:10px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px">
+      ${c.emoji} Ver ${esc2(c.nombre)} en vivo
+    </a>`;
+  }).join('');
+}
+
+// ── RENDER NAV DOTS ───────────────────────────
+function renderNavDots(){
+  const el=document.getElementById('nav-dots');
+  if(!el) return;
+  el.innerHTML=CADETES.map(c=>{
+    const online=ST[c.id]?.online||false;
+    return `<div class="dot-wrap">
+      <div class="dot ${online?'on':''}"></div>
+      <span class="dot-lbl">${esc2(c.nombre)}</span>
+    </div>`;
+  }).join('');
+}
+
+// ── STATS GLOBALES ────────────────────────────
+function updateGlobal(){
+  const total=CADETES.reduce((a,c)=>a+(ST[c.id]?.hasRuta?ST[c.id].stops:0),0);
+  const done=CADETES.reduce((a,c)=>a+(ST[c.id]?.hasRuta?ST[c.id].done:0),0);
+  const online=CADETES.filter(c=>ST[c.id]?.online).length;
+  document.getElementById('g-total').textContent=total;
+  document.getElementById('g-done').textContent=done;
+  document.getElementById('g-left').textContent=Math.max(0,total-done);
+  document.getElementById('g-online').textContent=online;
+}
+
+// ── LIMPIAR RUTA ──────────────────────────────
+window.limpiarRuta = async function(cadeteId){
+  document.getElementById('modal').innerHTML='';
+  await set(ref(db,'rutas/'+cadeteId),null);
+  await set(ref(db,'tracking/'+cadeteId+'/done'),null);
+  await set(ref(db,'tracking/'+cadeteId+'/session'),{active:false});
+};
+
+window.pedirLimpiar = async function(cadeteId, nombre){
+  // Mostrar modal base mientras carga
+  document.getElementById('modal').innerHTML=`
+    <div class="mbg" onclick="cerrarModal(event)"><div class="mbox" style="width:380px;max-width:95vw" id="limpiar-box">
+      <h3>🗑 Limpiar ruta de ${nombre}</h3>
+      <div id="cierre-caja-content" style="margin:12px 0">
+        <div style="text-align:center;color:var(--t2);font-size:12px;padding:10px">⏳ Calculando cierre de caja…</div>
+      </div>
+      <p style="font-size:12px;color:var(--t2)">Esto borra la ruta y las paradas completadas. No se puede deshacer.</p>
+      <div class="macts" style="margin-top:12px">
+        <button class="mbtn mbtn-cancel" onclick="cerrarModal()">Cancelar</button>
+        <button class="mbtn mbtn-danger" onclick="limpiarRuta('${cadeteId}')">Limpiar ruta</button>
+      </div>
+    </div></div>`;
+
+  // Leer caja y ruta directamente de Firebase
+  try{
+    const [rCaja, rRuta] = await Promise.all([
+      fetch('https://logistica-251a5-default-rtdb.firebaseio.com/cajas/'+cadeteId+'.json'),
+      fetch('https://logistica-251a5-default-rtdb.firebaseio.com/rutas/'+cadeteId+'.json'),
+    ]);
+    const [caja, ruta] = await Promise.all([rCaja.json(), rRuta.json()]);
+
+    const el = document.getElementById('cierre-caja-content');
+    if(!el) return;
+
+    if(!ruta || !ruta.stops || !ruta.stops.length){
+      el.innerHTML='<div style="font-size:12px;color:var(--t3);text-align:center;padding:8px">Sin ruta asignada</div>';
+      return;
+    }
+
+    // Caja inicial
+    const cajaSafe = caja||{};
+    // Monedas fijas
+    const monedas=[
+      {id:'usd',    nombre:'USD',            simbolo:'USD'},
+      {id:'cambio', nombre:'Cambio USD',     simbolo:'cUSD'},
+      {id:'usd_cc', nombre:'USD Cara Chica', simbolo:'USD cc'},
+      {id:'ars',    nombre:'Pesos',          simbolo:'$'},
+      {id:'eur',    nombre:'Euros',          simbolo:'EUR'},
+      {id:'brl',    nombre:'Reales',         simbolo:'BRL'},
+      {id:'gbp',    nombre:'Libras',         simbolo:'GBP'},
+    ];
+
+    // Totales por moneda: inicial + movimientos
+    // SIEMPRE usar IDs en lowercase para comparar
+    const totales={}, movs={};
+    monedas.forEach(m=>{
+      const id=m.id.toLowerCase();
+      // Buscar en cajaSafe con ID exacto o variantes
+      const val=parseFloat(cajaSafe[id])||parseFloat(cajaSafe[m.id])||0;
+      totales[id]=val;
+      movs[id]=0;
+    });
+
+    ruta.stops.forEach(s=>{
+      if(!s.tipo||s.tipo==='neutro') return;
+
+      function ap(sign, lista){
+        (lista||[]).forEach(item=>{
+          const mid=(item.moneda||'ars').toLowerCase();
+          const monto=parseFloat(item.monto)||0;
+          if(monto===0) return;
+          // Si el ID existe directamente
+          if(totales[mid]!==undefined){
+            totales[mid]+=sign*monto;
+            movs[mid]+=sign*monto;
+          } else {
+            // Buscar coincidencia parcial (ej: 'USD' matchea 'usd')
+            const key=Object.keys(totales).find(k=>k===mid||k.includes(mid)||mid.includes(k));
+            if(key){
+              totales[key]+=sign*monto;
+              movs[key]+=sign*monto;
+            } else {
+              // Moneda no reconocida — agregar igual
+              totales[mid]=(totales[mid]||0)+sign*monto;
+              movs[mid]=(movs[mid]||0)+sign*monto;
+            }
+          }
+        });
+      }
+
+      // Usar arrays si existen, sino compat legacy
+      const ents=s.entregas&&s.entregas.length?s.entregas
+        :(s.tipo==='entrega'||s.tipo==='ambos')?[{moneda:s.moneda||'ars',monto:s.monto||0}]:[];
+      let rets=[];
+      if(s.retiros&&s.retiros.length) rets=s.retiros;
+      else if(s.tipo==='retiro') rets=[{moneda:s.moneda||'ars',monto:s.monto||0}];
+      else if(s.tipo==='ambos')  rets=[{moneda:s.moneda2||'ars',monto:s.monto2||0}];
+
+      ap(-1,ents);
+      ap(+1,rets);
+    });
+
+
+    const fmt  = n => n.toLocaleString('es-AR',{minimumFractionDigits:0,maximumFractionDigits:2});
+    const fmov = n => (n>=0?'+':'')+fmt(n);
+    const hasCaja = monedas.some(m=>parseFloat(cajaSafe[m.id])>0);
+    const colCount = monedas.length;
+    const gridCols = colCount<=3?'1fr '.repeat(colCount).trim():
+                     colCount<=4?'1fr 1fr 1fr 1fr':
+                     'repeat(auto-fit,minmax(90px,1fr))';
+
+    el.innerHTML=`
+      <div style="background:rgba(91,141,246,.1);border:1px solid rgba(91,141,246,.2);border-radius:8px;padding:10px 12px;font-size:12px">
+        <div style="font-weight:700;margin-bottom:10px;color:#93baff">💼 Debería volver con:</div>
+        <div style="display:grid;grid-template-columns:${gridCols};gap:8px;text-align:center">
+          ${monedas.map(m=>{
+            const t=totales[m.id]||0, mv=movs[m.id]||0;
+            return `<div style="background:var(--bg);border-radius:7px;padding:8px;border:1px solid var(--border)">
+              <div style="font-size:10px;color:var(--t2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px">${esc2(m.simbolo)}</div>
+              <div style="font-size:16px;font-weight:700;color:${t>=0?'#4de09a':'#f08080'}">${m.simbolo==='$'?'$':''}${fmt(t)}</div>
+              <div style="font-size:10px;color:var(--t3);margin-top:2px">${fmov(mv)} del viaje</div>
+            </div>`;
+          }).join('')}
+        </div>
+        ${!hasCaja?'<div style="font-size:10px;color:var(--amber);margin-top:8px;text-align:center">⚠ Sin caja inicial — total refleja solo movimientos del viaje</div>':''}
+      </div>`;
+  }catch(e){
+    const el=document.getElementById('cierre-caja-content');
+    if(el) el.innerHTML='<div style="font-size:11px;color:var(--t3);text-align:center">No se pudo calcular el cierre</div>';
+  }
+};
+
+// ── GESTIÓN DE CADETES ────────────────────────
+function getCadetes(){ return CADETES; }
+
+function renderCadetesLista(){
+  const el=document.getElementById('cadetes-lista');
+  if(!el||!CADETES.length) return;
+  el.innerHTML=CADETES.map(c=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;
+      background:var(--card);border:1px solid var(--border);border-radius:7px;margin-bottom:5px">
+      <span style="font-size:18px">${c.emoji}</span>
+      <span style="font-size:13px;font-weight:700;flex:1">${esc2(c.nombre)}</span>
+      <span style="font-size:10px;color:var(--t3)">${c.id}</span>
+    </div>`).join('');
+}
+
+window.abrirEditarCadetes = function(){
+  window._editCadetes = JSON.parse(JSON.stringify(CADETES));
+  mostrarModalEditar();
+};
+
+function mostrarModalEditar(){
+  const cadetes=window._editCadetes;
+  const rows=cadetes.map((c,i)=>`
+    <div style="display:grid;grid-template-columns:44px 1fr 80px 32px;gap:6px;margin-bottom:6px;align-items:center">
+      <input value="${esc2(c.emoji)}" id="em-${i}" class="inp2" style="text-align:center;font-size:18px;padding:6px"/>
+      <input value="${esc2(c.nombre)}" id="nm-${i}" class="inp2" placeholder="Nombre"/>
+      <span style="font-size:10px;color:var(--t3);text-align:center">${c.id}</span>
+      ${cadetes.length>1
+        ?`<button onclick="quitarCadete(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:20px;line-height:1;padding:0">×</button>`
+        :'<span></span>'}
+    </div>`).join('');
+
+  document.getElementById('modal').innerHTML=`
+    <div class="mbg" onclick="cerrarModal(event)"><div class="mbox" style="width:380px;max-width:95vw">
+      <h3>✏️ Editar cadetes</h3>
+      <p style="font-size:11px;color:var(--t2);margin-bottom:12px;line-height:1.5">
+        Emoji · Nombre · ID (fijo)
+      </p>
+      <style>
+        .inp2{width:100%;padding:7px 9px;background:var(--bg);border:1px solid var(--border);
+          border-radius:6px;color:var(--t1);font-size:13px;font-family:var(--f);outline:none;box-sizing:border-box}
+        .inp2:focus{border-color:var(--acc)}
+      </style>
+      <div id="cadetes-rows">${rows}</div>
+      <button onclick="agregarCadete()" style="width:100%;margin-top:8px;background:none;
+        border:1px dashed var(--border);border-radius:6px;padding:7px;color:var(--t2);
+        cursor:pointer;font-size:12px;font-family:var(--f)">+ Agregar cadete</button>
+      <div class="macts" style="margin-top:14px">
+        <button class="mbtn mbtn-cancel" onclick="cerrarModal()">Cancelar</button>
+        <button class="mbtn" onclick="guardarCadetes()"
+          style="background:var(--green);color:#04200e;border-color:var(--green)">💾 Guardar</button>
+      </div>
+    </div></div>`;
+}
+
+window.quitarCadete = function(idx){
+  leerFilas();
+  window._editCadetes.splice(idx,1);
+  mostrarModalEditar();
+};
+
+window.agregarCadete = function(){
+  leerFilas();
+  let n=1;
+  const ids=window._editCadetes.map(c=>c.id);
+  while(ids.includes('cadete'+n)) n++;
+  window._editCadetes.push({id:'cadete'+n, nombre:'Cadete '+n, emoji:'🏍'});
+  mostrarModalEditar();
+};
+
+function leerFilas(){
+  if(!window._editCadetes) return;
+  window._editCadetes.forEach((c,i)=>{
+    const nm=document.getElementById('nm-'+i);
+    const em=document.getElementById('em-'+i);
+    if(nm) c.nombre=nm.value.trim()||c.nombre;
+    if(em) c.emoji=em.value.trim()||c.emoji;
+  });
+}
+
+window.guardarCadetes = async function(){
+  leerFilas();
+  const nuevos=window._editCadetes.filter(c=>c.nombre.trim());
+  if(!nuevos.length){alert('Necesitás al menos un cadete');return;}
+
+  // Borrar cadetes eliminados de Firebase
+  const idsNuevos=nuevos.map(c=>c.id);
+  for(const c of CADETES){
+    if(!idsNuevos.includes(c.id)){
+      await set(ref(db,'cadetes/'+c.id),null);
+    }
+  }
+  // Guardar los nuevos/editados
+  for(const c of nuevos){
+    await set(ref(db,'cadetes/'+c.id),{nombre:c.nombre,emoji:c.emoji});
+  }
+  cerrarModal();
+};
+
+window.cerrarModal=function(e){
+  if(!e||e.target.classList.contains('mbg'))
+    document.getElementById('modal').innerHTML='';
+};
+
+function esc2(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ── MONEDAS FIJAS ─────────────────────────────────
+const MONEDAS = [
+  {id:'usd',    nombre:'USD',            simbolo:'USD'},
+  {id:'cambio', nombre:'Cambio USD',     simbolo:'cUSD'},
+  {id:'usd_cc', nombre:'USD Cara Chica', simbolo:'USD cc'},
+  {id:'ars',    nombre:'Pesos',          simbolo:'$'},
+  {id:'eur',    nombre:'Euros',          simbolo:'EUR'},
+  {id:'brl',    nombre:'Reales',         simbolo:'BRL'},
+  {id:'gbp',    nombre:'Libras',         simbolo:'GBP'},
+];
+function getMonedas(){ return MONEDAS; }
+function saveMonedas(m){} // no-op, monedas son fijas
+
+// ── CAJA MÓVIL ────────────────────────────────────
+function renderCajaMovil(){
+  const el=document.getElementById('cajas-container');
+  if(!el||!CADETES.length) return;
+  const monedas=getMonedas();
+  const cols='110px '+monedas.map(()=>'1fr').join(' ');
+  let h=`<div style="display:grid;grid-template-columns:${cols};gap:6px;
+    margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid var(--border)">
+    <span></span>
+    ${monedas.map(m=>`<div style="font-size:9px;color:var(--t3);text-align:center;text-transform:uppercase;letter-spacing:.3px">${esc2(m.simbolo)}</div>`).join('')}
+  </div>`;
+  h+=CADETES.map(c=>{
+    const cj=window._cajas&&window._cajas[c.id]||{};
+    return `<div style="display:grid;grid-template-columns:${cols};gap:6px;margin-bottom:6px;align-items:center">
+      <div style="font-size:12px;font-weight:700;display:flex;align-items:center;gap:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.emoji} ${esc2(c.nombre)}</div>
+      ${monedas.map(m=>`<input id="cj-${m.id}-${c.id}" type="number" min="0" step="0.01"
+        value="${parseFloat(cj[m.id])||0}" placeholder="0"
+        style="width:100%;padding:6px 8px;background:var(--bg);border:1px solid var(--border);
+        border-radius:6px;color:var(--t1);font-size:12px;font-family:var(--f);outline:none;text-align:right"/>`).join('')}
+    </div>`;
+  }).join('');
+  el.innerHTML=h;
+}
+
+onValue(ref(db,'cajas'),snap=>{ window._cajas=snap.val()||{}; renderCajaMovil(); });
+
+window.guardarCajas=async function(){
+  if(!CADETES.length){alert('Sin cadetes');return;}
+  const monedas=getMonedas();
+  const cajas={};
+  CADETES.forEach(c=>{
+    const obj={nombre:c.nombre,updatedAt:new Date().toISOString()};
+    monedas.forEach(m=>{ obj[m.id]=parseFloat(document.getElementById('cj-'+m.id+'-'+c.id)?.value)||0; });
+    cajas[c.id]=obj;
+  });
+  try{
+    await set(ref(db,'cajas'),cajas);
+    window._cajas=cajas;
+    await set(ref(db,'config/monedas'),MONEDAS);
+    const toast=document.createElement('div');
+    toast.style.cssText='position:fixed;top:14px;right:14px;padding:9px 14px;border-radius:8px;font-size:12px;color:#fff;z-index:9999;background:rgba(18,50,30,.97);animation:ta 2.5s forwards;pointer-events:none';
+    toast.textContent='✓ Caja móvil guardada';
+    document.body.appendChild(toast);
+    setTimeout(()=>toast.remove(),2600);
+  }catch(e){ alert('Error: '+e.message); }
+};
+
+window.editarMonedas=function(){
+  const monedas=getMonedas();
+  window._editMonedas=JSON.parse(JSON.stringify(monedas));
+  mostrarModalMonedas();
+};
+function mostrarModalMonedas(){
+  const m=window._editMonedas;
+  const rows=m.map((mon,i)=>`
+    <div style="display:grid;grid-template-columns:1fr 80px 32px;gap:6px;margin-bottom:6px;align-items:center">
+      <input id="mn-n-${i}" value="${esc2(mon.nombre)}" placeholder="Nombre"
+        style="padding:7px 9px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--t1);font-size:13px;font-family:var(--f);outline:none;width:100%"/>
+      <input id="mn-s-${i}" value="${esc2(mon.simbolo)}" placeholder="Símbolo"
+        style="padding:7px 9px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--t1);font-size:13px;font-family:var(--f);outline:none;width:100%;text-align:center"/>
+      ${m.length>1?`<button onclick="quitarMoneda(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:18px;line-height:1;padding:0">×</button>`:'<span></span>'}
+    </div>`).join('');
+  document.getElementById('modal').innerHTML=`
+    <div class="mbg" onclick="cerrarModal(event)"><div class="mbox" style="width:360px">
+      <h3>⚙️ Configurar monedas</h3>
+      <p style="font-size:11px;color:var(--t2);margin-bottom:12px">Las monedas que manejás en caja.</p>
+      <div style="display:grid;grid-template-columns:1fr 80px 32px;gap:6px;margin-bottom:4px">
+        <div style="font-size:9px;color:var(--t3);text-transform:uppercase">Nombre</div>
+        <div style="font-size:9px;color:var(--t3);text-transform:uppercase;text-align:center">Símbolo</div>
+        <span></span>
+      </div>
+      <div id="monedas-rows">${rows}</div>
+      <button onclick="agregarMoneda()" style="width:100%;margin-top:8px;background:none;border:1px dashed var(--border);border-radius:6px;padding:7px;color:var(--t2);cursor:pointer;font-size:12px;font-family:var(--f)">+ Agregar moneda</button>
+      <div class="macts" style="margin-top:14px">
+        <button class="mbtn mbtn-cancel" onclick="cerrarModal()">Cancelar</button>
+        <button class="mbtn" onclick="guardarMonedas()" style="background:var(--green);color:#04200e;border-color:var(--green)">💾 Guardar</button>
+      </div>
+    </div></div>`;
+};
+window.quitarMoneda=function(i){ leerFilasMonedas(); window._editMonedas.splice(i,1); mostrarModalMonedas(); };
+window.agregarMoneda=function(){
+  leerFilasMonedas();
+  const n=window._editMonedas.length+1;
+  window._editMonedas.push({id:'m'+n,nombre:'Moneda '+n,simbolo:'M'+n});
+  mostrarModalMonedas();
+};
+function leerFilasMonedas(){
+  (window._editMonedas||[]).forEach((m,i)=>{
+    const nm=document.getElementById('mn-n-'+i),sm=document.getElementById('mn-s-'+i);
+    if(nm){ m.nombre=nm.value.trim()||m.nombre; m.id=m.nombre.toLowerCase().replace(/[^a-z0-9]/g,'_'); }
+    if(sm) m.simbolo=sm.value.trim()||m.simbolo;
+  });
+}
+window.guardarMonedas=function(){ cerrarModal(); };
+
+</script>
+
+<script>
+function goTo(page,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.ntab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('page-'+page).classList.add('on');
+  btn.classList.add('on');
+}
+</script>
+</body>
+</html>
